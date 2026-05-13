@@ -1,0 +1,61 @@
+# Build directories
+build/
+out/
+cmake-build-*/
+Debug/
+Release/
+x64/
+x86/
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Object files
+*.obj
+*.o
+*.ilk
+*.pdb
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Logs
+*.log
+
+# OS generated
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor backups
+*~
+*.swp
+*.swo
+*.bak
+
+# Config files with sensitive data
+*.env
+config.local.*
+
+# Auto-generated documentation
+docs/html/
+docs/latex/
+
+# vcpkg
+vcpkg_installed/
