@@ -1,25 +1,36 @@
 ﻿cmake_minimum_required(VERSION 3.15)
-project(Messenger)
+project(BobrNET)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Сервер
-add_executable(server 
-    server/server.cpp 
+# Сервер (пути указываем явно)
+add_executable(server
+    server/server.cpp
+    models/db/database.cpp
     external/sqlite/sqlite3.c
 )
 
 # Клиент
-add_executable(client client/client.cpp)
+add_executable(client
+    client/client.cpp
+)
 
-# Включаем заголовки SQLite
-target_include_directories(server PRIVATE external/sqlite)
+# Пути к заголовкам
+target_include_directories(server PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/external/sqlite
+    ${CMAKE_SOURCE_DIR}/models
+    ${CMAKE_SOURCE_DIR}/models/db
+)
 
-# Для Windows подключаем библиотеку сокетов
+target_include_directories(client PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/models
+)
+
+# Библиотеки
 if(WIN32)
     target_link_libraries(server ws2_32)
     target_link_libraries(client ws2_32)
-else()
-    target_link_libraries(server pthread)
 endif()

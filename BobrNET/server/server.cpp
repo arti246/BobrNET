@@ -4,21 +4,12 @@
 #include <map>
 #include <thread>
 #include <mutex>
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#pragma comment(lib, "ws2_32.lib")
-#else
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#define SOCKET int
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR -1
-#define closesocket close
-#endif
+#include "../models/User.hpp"
+#include "../models/Message.hpp"
+#include "../models/MessageStatus.hpp"
+#include "../models/Session.hpp"
+#include "../models/db/database.hpp"
+#include "../models/Platform.hpp"
 
 // Состояния клиента
 enum ClientState {

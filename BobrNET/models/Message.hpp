@@ -1,3 +1,8 @@
+#pragma once
+
+#include "MessageStatus.hpp"
+#include <string>
+
 class Message {
 public:
     Message() = default;
@@ -10,6 +15,7 @@ public:
     int id() const { return m_id; }
     int from_id() const { return m_from_id; }
     int to_id() const { return m_to_id; }
+    int chat_id() const { return m_chat_id; }
     const std::string& text() const { return m_text; }
     long long timestamp() const { return m_timestamp; }
     MessageStatus status() const { return m_status; }
@@ -23,4 +29,5 @@ private:
     std::string m_text;
     long long m_timestamp = 0;
     MessageStatus m_status = MessageStatus::SENT;
+    int m_chat_id;
 };
