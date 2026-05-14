@@ -9,12 +9,12 @@ add_executable(server
     server/server.cpp
     models/db/database.cpp
     external/sqlite/sqlite3.c
-)
+ "models/db/repositories/ChatRepository.cpp" "models/db/repositories/MessageRepository.cpp" "models/db/repositories/UserRepository.cpp")
 
 # Клиент
 add_executable(client
     client/client.cpp
-)
+ "models/db/repositories/ChatRepository.cpp" "models/db/repositories/MessageRepository.cpp" "models/db/repositories/UserRepository.cpp")
 
 # Пути к заголовкам
 target_include_directories(server PRIVATE
