@@ -1,7 +1,7 @@
 #pragma once
 
-enum class MessageStatus {
-    SENT,       // отправлено (сохранено на сервере)
-    DELIVERED,  // доставлено клиенту
-    READ        // прочитано (опционально)
+namespace MessageStatus {
+    const int SENT = 0;      // Отправлено (сохранено в БД)
+    const int DELIVERED = 1; // Доставлено клиенту
+    const int READ = 2;      // Прочитано пользователем
 };
