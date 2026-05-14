@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include "../../../external/sqlite/sqlite3.h"
 
 class Database;
 class Message;

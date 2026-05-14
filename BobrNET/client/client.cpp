@@ -71,14 +71,35 @@ int main() {
 
     std::cout << "Connected to server!" << std::endl;
 
-    // Вводим имя
-    std::string name;
-    std::cout << "Enter your name: ";
-    std::getline(std::cin, name);
+    // Аутентификация
+    std::string action, login, password;
+    std::cout << "Enter REGISTER or LOGIN: ";
+    std::getline(std::cin, action);
 
-    // Отправляем имя серверу
+    std::cout << "Login: ";
+    std::getline(std::cin, login);
 
-    send(sock, name.c_str(), name.size(), 0);
+    std::cout << "Password: ";
+    std::getline(std::cin, password);
+
+    std::string auth_cmd = action + " " + login + " " + password;
+    send(sock, auth_cmd.c_str(), auth_cmd.size(), 0);
+
+    // Ждём ответ сервера на аутентификацию
+    char buffer[4096];
+    int bytesReceived = recv(sock, buffer, sizeof(buffer) - 1, 0);
+    if (bytesReceived > 0) {
+        buffer[bytesReceived] = '\0';
+        std::cout << buffer << std::endl;
+        if (std::string(buffer).find("Error") != std::string::npos ||
+            std::string(buffer).find("failed") != std::string::npos) {
+            closesocket(sock);
+#ifdef _WIN32
+            WSACleanup();
+#endif
+            return 1;
+        }
+    }
 
     // Запускаем поток для приёма сообщений
     std::thread receiver(receive_messages);
