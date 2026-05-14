@@ -32,16 +32,17 @@ public:
     bool log_event(const std::string& level, const std::string& event_type, const std::string& message, int user_id = -1);
 
     // Чаты
-    bool create_private_chat(int user1_id, int user2_id, int& chat_id);
-    bool create_group_chat(const std::string& name, const std::vector<int>& user_ids, int& chat_id);
-    std::vector<Chat> get_user_chats(int user_id);
-    std::vector<User> get_chat_participants(int chat_id, int exclude_user_id = -1);
-    int get_private_chat_between(int user1_id, int user2_id);  // вернёт chat_id или -1
+    bool create_private_chat(int user1_id, int user2_id, int& out_chat_id);
+    bool create_group_chat(const std::string& name, const std::vector<int>& user_ids, int& out_chat_id);
+    std::vector<std::pair<int, std::string>> get_user_chats(int user_id);  // возвращает (chat_id, display_name)
+    std::vector<int> get_chat_participants(int chat_id, int exclude_user_id = -1);
+    int find_private_chat(int user1_id, int user2_id);  // вернёт chat_id или -1
 
-    // Сообщения с поддержкой чатов
-    bool save_message(int chat_id, int from_id, const std::string& text);
+    // Сообщения с чатами
+    bool save_message(int chat_id, int from_user_id, const std::string& text);
     std::vector<Message> get_messages_in_chat(int chat_id, int limit = 50);
-    bool mark_messages_as_read(int chat_id, int user_id);  // все сообщения в чате, где user_id НЕ отправитель
+    bool mark_messages_as_read(int chat_id, int current_user_id);
+    bool update_message_status(int message_id, int status);
 
 private:
     sqlite3* m_db;
