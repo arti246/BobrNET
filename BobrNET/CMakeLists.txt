@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Сервер (пути указываем явно)
 add_executable(server
     server/server.cpp
-    models/db/database.cpp
+    "models/db/Database.cpp"
     external/sqlite/sqlite3.c
  "models/db/repositories/ChatRepository.cpp" "models/db/repositories/MessageRepository.cpp" "models/db/repositories/UserRepository.cpp" "models/db/repositories/LogRepository.cpp")
 

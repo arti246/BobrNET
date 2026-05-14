@@ -4,12 +4,19 @@
 #include <map>
 #include <thread>
 #include <mutex>
+
+#include "../models/Platform.hpp"
+
 #include "../models/User.hpp"
 #include "../models/Message.hpp"
 #include "../models/MessageStatus.hpp"
 #include "../models/Session.hpp"
-#include "../models/db/database.hpp"
-#include "../models/Platform.hpp"
+
+#include "../models/db/Database.hpp"
+#include "../models/db/repositories/ChatRepository.hpp"
+#include "../models/db/repositories/UserRepository.hpp"
+#include "../models/db/repositories/LogRepository.hpp"
+#include "../models/db/repositories/MessageRepository.hpp"
 
 // Состояния клиента
 enum ClientState {

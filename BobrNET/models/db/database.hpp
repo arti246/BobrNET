@@ -17,6 +17,8 @@ public:
     // Вспомогательные методы
     static long long current_time();
 
+    bool Database::init();
+
 private:
     sqlite3* m_db;
 };
