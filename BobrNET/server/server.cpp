@@ -14,7 +14,6 @@
 #include "../models/User.hpp"
 #include "../models/Message.hpp"
 #include "../models/MessageStatus.hpp"
-#include "../models/Session.hpp"
 #include "../models/Chat.hpp"
 
 #include "../models/db/Database.hpp"
@@ -50,7 +49,7 @@ void broadcast(const std::string& msg, SOCKET exclude = INVALID_SOCKET) {
 }
 
 std::string hash_password(const std::string& password) {
-    return password;  // добавить реальное хеширование
+    return password;  // TODO: добавить реальное хеширование
 }
 
 std::string get_chat_display_name(int chat_id, int current_user_id) {
