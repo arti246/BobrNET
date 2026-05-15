@@ -25,15 +25,14 @@ bool connected = true;
 void receive_messages() {
     char buffer[4096];
     while (connected) {
-        int bytesReceived = recv(sock, buffer, sizeof(buffer) - 1, 0);
-        if (bytesReceived <= 0) {
+        int bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
+        if (bytes <= 0) {
             std::cout << "\n[Disconnected from server]" << std::endl;
             connected = false;
             break;
         }
-        buffer[bytesReceived] = '\0';
-        std::cout << "\n" << buffer << std::endl;
-        std::cout << "> " << std::flush;
+        buffer[bytes] = '\0';
+        std::cout << buffer << std::flush;  // только вывод сообщения, без "> "
     }
 }
 
@@ -103,13 +102,13 @@ int main() {
 
     // Запускаем поток для приёма сообщений
     std::thread receiver(receive_messages);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Основной цикл для отправки сообщений
     std::string input;
     while (connected) {
         std::cout << "> " << std::flush;
         std::getline(std::cin, input);
-
         if (input == "/exit") {
             send(sock, input.c_str(), input.size(), 0);
             connected = false;

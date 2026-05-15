@@ -19,7 +19,14 @@ add_executable(server
     models/db/repositories/MessageRepository.cpp
     models/db/repositories/LogRepository.cpp
     external/sqlite/sqlite3.c
-)
+    server/Session.cpp
+    server/commands/MsgCommand.cpp
+    server/commands/ChatsCommand.cpp
+    server/commands/CommandDispatcher.cpp
+    server/commands/OpenCommand.cpp
+    server/commands/HistoryCommand.cpp
+    server/commands/HelpCommand.cpp
+    server/commands/ExitCommand.cpp)
 
 # Клиент
 add_executable(client
