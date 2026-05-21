@@ -1,7 +1,11 @@
+#define _CRT_SERCURE_NO_WARNINGS
 #pragma once
 
 #include <string>
 #include <vector>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 #include "../models/Platform.hpp"
 
@@ -33,6 +37,7 @@ public:
     void set_active_chat(int chat_id);
     int active_chat() const;
     void send_message_to_active_chat(const std::string& text);
+    std::string format_timestamp(long long timestamp);
 
     // Доступ к репозиториям (через ссылки)
     Database& db();

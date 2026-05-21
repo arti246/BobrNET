@@ -161,6 +161,61 @@ bool register_user(const std::string& login, const std::string& password, const 
     return false;
 }
 
+#ifdef _WIN32
+#include <conio.h>
+
+std::string get_password() {
+    std::string password;
+    char ch;
+    std::cout << "Password: ";
+    while (true) {
+        ch = _getch();
+        if (ch == '\r') {  // Enter
+            std::cout << std::endl;
+            break;
+        }
+        else if (ch == '\b') {  // Backspace
+            if (!password.empty()) {
+                password.pop_back();
+                std::cout << "\b \b";
+            }
+        }
+        else if (ch == 3) {  // Ctrl+C
+            exit(0);
+        }
+        else {
+            password.push_back(ch);
+            std::cout << '*';
+        }
+    }
+    return password;
+}
+#else
+// Linux / Unix
+#include <termios.h>
+#include <unistd.h>
+
+std::string get_password() {
+    std::string password;
+    termios oldt, newt;
+
+    // Отключаем эхо (чтобы символы не отображались)
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    std::cout << "Password: ";
+    std::getline(std::cin, password);
+
+    // Включаем эхо обратно
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    std::cout << std::endl;
+
+    return password;
+}
+#endif
+
 int main() {
 #ifdef _WIN32
     WSADATA wsaData;
@@ -190,8 +245,7 @@ int main() {
             std::string login, password;
             std::cout << "Login: ";
             std::getline(std::cin, login);
-            std::cout << "Password: ";
-            std::getline(std::cin, password);
+            password = get_password();
 
             if (authenticate("LOGIN", login, password)) {
                 authenticated = true;
@@ -205,8 +259,7 @@ int main() {
             std::string login, password, birthday;
             std::cout << "Login: ";
             std::getline(std::cin, login);
-            std::cout << "Password: ";
-            std::getline(std::cin, password);
+            password = get_password();
             std::cout << "Birthday (YYYY-MM-DD): ";
             std::getline(std::cin, birthday);
 
@@ -232,7 +285,7 @@ int main() {
     // Основной цикл
     std::string input;
     while (connected) {
-        //std::cout << "> " << std::flush;
+        std::cout << "> " << std::flush;
         std::getline(std::cin, input);
 
         if (input.empty()) continue;

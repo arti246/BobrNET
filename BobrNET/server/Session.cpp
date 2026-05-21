@@ -92,7 +92,8 @@ void Session::send_chat_history(int chat_id) {
     for (auto it = chat_messages.rbegin(); it != chat_messages.rend(); ++it) {
         auto sender = g_users.find_by_id(it->user_id());
         std::string sender_name = sender.has_value() ? sender->login() : "unknown";
-        send(sender_name + ": " + it->text());
+        std::string time_str = format_timestamp(it->timestamp());
+        send("[" + time_str + "] " + sender_name + ": " + it->text());
     }
 
     send("=========================");
@@ -125,8 +126,9 @@ void Session::send_message_to_user(const std::string& target_login, const std::s
     {
         std::lock_guard<std::mutex> lock(g_sessions_mutex);  // нужен доступ к g_sessions
         auto it = g_sessions.find(target->id());
-        if (it != g_sessions.end()) {
-            it->second->send(m_login + ": " + text);
+        if (it != g_sessions.end() && it->second) {
+            std::string time_str = format_timestamp(std::time(nullptr));
+            it->second->send("[" + time_str + "] " + m_login + ": " + text);
             delivered = true;
             g_messages.mark_all_in_chat_as_delivered(chat_id, target->id());
         }
@@ -188,7 +190,8 @@ void Session::send_message_to_active_chat(const std::string& text) {
     for (const auto& user : participants) {
         auto it = g_sessions.find(user.id());
         if (it != g_sessions.end() && it->second) {
-            it->second->send(m_login + ": " + text);
+            std::string time_str = format_timestamp(std::time(nullptr));
+            it->second->send("[" + time_str + "] " + m_login + ": " + text);
         }
     }
 
@@ -196,6 +199,14 @@ void Session::send_message_to_active_chat(const std::string& text) {
     // send("[Sent]");
 
     g_logs.info("MESSAGE", m_login + " -> chat " + std::to_string(chat_id) + ": " + text, m_user_id);
+}
+
+std::string Session::format_timestamp(long long timestamp) {
+    std::time_t t = timestamp;
+    std::tm* tm = std::localtime(&t);
+    std::ostringstream oss;
+    oss << std::put_time(tm, "%d.%m.%Y %H:%M");
+    return oss.str();
 }
 
 Database& Session::db() { return g_db; }
