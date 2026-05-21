@@ -13,7 +13,7 @@ public:
 
     // Создание пользователя
     bool create(const std::string& login, const std::string& password_hash,
-        long long birthday = 0);
+        const std::string& birthday);
 
     // Поиск
     std::optional<User> find_by_login(const std::string& login);

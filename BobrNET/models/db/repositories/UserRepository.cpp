@@ -7,7 +7,7 @@
 UserRepository::UserRepository(Database& db) : m_db(db) {}
 
 bool UserRepository::create(const std::string& login, const std::string& password_hash,
-    long long birthday) {
+    const std::string& birthday) {
     const char* sql = "INSERT INTO users (login, password_hash, created_at, birthday) "
         "VALUES (?, ?, ?, ?)";
 
@@ -17,12 +17,13 @@ bool UserRepository::create(const std::string& login, const std::string& passwor
         return false;
     }
 
-    long long now = Database::current_time();
+    long long now_Created_at = Database::current_time();
+    long long nowBirthday = Database::current_time();
 
     sqlite3_bind_text(stmt, 1, login.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 2, password_hash.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_int64(stmt, 3, now);
-    sqlite3_bind_int64(stmt, 4, birthday);
+    sqlite3_bind_int64(stmt, 3, now_Created_at);
+    sqlite3_bind_int64(stmt, 4, nowBirthday);
 
     bool success = (sqlite3_step(stmt) == SQLITE_DONE);
     sqlite3_finalize(stmt);

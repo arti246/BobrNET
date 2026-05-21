@@ -86,7 +86,7 @@ void handle_client(std::shared_ptr<Session> session) {
         }
     }
 
-    session->send("[Welcome " + login + "! Type /help]");
+    session->send("[Welcome back " + login + "! Type /help]");
     session->send_chat_list();
 
     CommandDispatcher dispatcher;
@@ -207,14 +207,14 @@ int main() {
         cmd.erase(std::remove(cmd.begin(), cmd.end(), '\r'), cmd.end());
 
         std::istringstream iss(cmd);
-        std::string action, login, password;
-        iss >> action >> login >> password;
+        std::string action, login, password, birthday;
+        iss >> action >> login >> password >> birthday;
 
         int user_id = -1;
         bool auth_success = false;
 
         if (action == "REGISTER") {
-            if (g_users.create(login, hash_password(password))) {
+            if (g_users.create(login, hash_password(password), birthday)) {
                 auto user = g_users.find_by_login(login);
                 if (user.has_value()) {
                     user_id = user->id();
@@ -234,8 +234,6 @@ int main() {
             if (user.has_value() && user->password_hash() == hash_password(password)) {
                 user_id = user->id();
                 auth_success = true;
-                std::string msg = "[Login successful! Welcome back " + login + "]\n";
-                send(clientSocket, msg.c_str(), msg.size(), 0);
                 g_logs.info("LOGIN", "User logged in: " + login, user_id);
             }
             else {

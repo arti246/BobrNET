@@ -21,19 +21,110 @@
 SOCKET sock;
 bool connected = true;
 
-// Функция для приёма сообщений (работает в отдельном потоке)
 void receive_messages() {
     char buffer[4096];
     while (connected) {
         int bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
         if (bytes <= 0) {
-            std::cout << "\n[Disconnected from server]" << std::endl;
             connected = false;
             break;
         }
         buffer[bytes] = '\0';
-        std::cout << buffer << std::flush;  // только вывод сообщения, без "> "
+        std::cout << buffer << std::flush;
     }
+}
+
+void show_menu() {
+    std::cout << "\n=================================" << std::endl;
+    std::cout << "        MESSENGER CLIENT" << std::endl;
+    std::cout << "=================================" << std::endl;
+    std::cout << "  1. Login" << std::endl;
+    std::cout << "  2. Register" << std::endl;
+    std::cout << "  0. Exit" << std::endl;
+    std::cout << "=================================" << std::endl;
+    std::cout << "Choose option: ";
+}
+
+bool connect_to_server() {
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock == INVALID_SOCKET) {
+        return false;
+    }
+
+    sockaddr_in serverAddr;
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(8888);
+    inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+
+    if (connect(sock, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+        closesocket(sock);
+        return false;
+    }
+
+    return true;
+}
+
+void disconnect_from_server() {
+    if (sock != INVALID_SOCKET) {
+        closesocket(sock);
+        sock = INVALID_SOCKET;
+    }
+}
+
+bool authenticate(const std::string& action, const std::string& login, const std::string& password) {
+    // Подключаемся к серверу
+    if (!connect_to_server()) {
+        std::cout << "[Error: Cannot connect to server. Make sure it's running.]" << std::endl;
+        return false;
+    }
+
+    std::string auth_cmd = action + " " + login + " " + password;
+    send(sock, auth_cmd.c_str(), auth_cmd.size(), 0);
+
+    char buffer[4096];
+    int bytesReceived = recv(sock, buffer, sizeof(buffer) - 1, 0);
+    if (bytesReceived > 0) {
+        buffer[bytesReceived] = '\0';
+        std::cout << buffer << std::endl;
+
+        if (std::string(buffer).find("Error") != std::string::npos ||
+            std::string(buffer).find("failed") != std::string::npos ||
+            std::string(buffer).find("already taken") != std::string::npos) {
+            disconnect_from_server();
+            return false;
+        }
+        return true;
+    }
+
+    disconnect_from_server();
+    return false;
+}
+
+bool register_user(const std::string& login, const std::string& password, const std::string& birthday) {
+    if (!connect_to_server()) {
+        std::cout << "[Error: Cannot connect to server. Make sure it's running.]" << std::endl;
+        return false;
+    }
+
+    std::string auth_cmd = "REGISTER " + login + " " + password + " " + birthday;
+    send(sock, auth_cmd.c_str(), auth_cmd.size(), 0);
+
+    char buffer[4096];
+    int bytesReceived = recv(sock, buffer, sizeof(buffer) - 1, 0);
+    if (bytesReceived > 0) {
+        buffer[bytesReceived] = '\0';
+        std::cout << buffer << std::endl;
+
+        if (std::string(buffer).find("Error") != std::string::npos ||
+            std::string(buffer).find("already taken") != std::string::npos) {
+            disconnect_from_server();
+            return false;
+        }
+        return true;
+    }
+
+    disconnect_from_server();
+    return false;
 }
 
 int main() {
@@ -45,73 +136,63 @@ int main() {
     }
 #endif
 
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == INVALID_SOCKET) {
-        std::cerr << "Socket creation failed" << std::endl;
-#ifdef _WIN32
-        WSACleanup();
-#endif
-        return 1;
-    }
+    bool authenticated = false;
 
-    sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(8888);
-    inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+    while (!authenticated) {
+        show_menu();
 
-    if (connect(sock, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-        std::cerr << "Connection failed" << std::endl;
-        closesocket(sock);
-#ifdef _WIN32
-        WSACleanup();
-#endif
-        return 1;
-    }
+        int choice;
+        std::cin >> choice;
+        std::cin.ignore();
 
-    std::cout << "Connected to server!" << std::endl;
-
-    // Аутентификация
-    bool flag = true;
-    std::string action, login, password;
-
-    while (flag)
-    {
-        std::cout << "Enter REGISTER or LOGIN: ";
-        std::getline(std::cin, action);
-
-        if (action == "LOGIN" || action == "REGISTER")
-        {
-            flag = false;
-        }
-    }
-
-    std::cout << "Login: ";
-    std::getline(std::cin, login);
-
-    std::cout << "Password: ";
-    std::getline(std::cin, password);
-
-    std::string auth_cmd = action + " " + login + " " + password;
-    send(sock, auth_cmd.c_str(), auth_cmd.size(), 0);
-
-    // Ждём ответ сервера на аутентификацию
-    char buffer[4096];
-    int bytesReceived = recv(sock, buffer, sizeof(buffer) - 1, 0);
-    if (bytesReceived > 0) {
-        buffer[bytesReceived] = '\0';
-        std::cout << buffer << std::endl;
-        if (std::string(buffer).find("Error") != std::string::npos ||
-            std::string(buffer).find("failed") != std::string::npos) {
-            closesocket(sock);
+        if (choice == 0) {
+            std::cout << "Goodbye!" << std::endl;
 #ifdef _WIN32
             WSACleanup();
 #endif
-            return 1;
+            return 0;
+        }
+        else if (choice == 1) {
+            std::string login, password;
+            std::cout << "Login: ";
+            std::getline(std::cin, login);
+            std::cout << "Password: ";
+            std::getline(std::cin, password);
+
+            if (authenticate("LOGIN", login, password)) {
+                authenticated = true;
+            }
+            else {
+                std::cout << "\n[Login failed. Try again.]" << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            }
+        }
+        else if (choice == 2) {
+            std::string login, password, birthday;
+            std::cout << "Login: ";
+            std::getline(std::cin, login);
+            std::cout << "Password: ";
+            std::getline(std::cin, password);
+            std::cout << "Birthday (YYYY-MM-DD): ";
+            std::getline(std::cin, birthday);
+
+            if (register_user(login, password, birthday)) {
+                authenticated = true;
+            }
+            else {
+                std::cout << "\n[Registration failed. Username may already exist.]" << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            }
+        }
+        else {
+            std::cout << "Invalid option. Please try again." << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }
 
     // Запускаем поток для приёма сообщений
     std::thread receiver(receive_messages);
+
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Основной цикл для отправки сообщений
@@ -119,6 +200,7 @@ int main() {
     while (connected) {
         std::cout << "> " << std::flush;
         std::getline(std::cin, input);
+
         if (input == "/exit") {
             send(sock, input.c_str(), input.size(), 0);
             connected = false;
@@ -128,10 +210,8 @@ int main() {
         send(sock, input.c_str(), input.size(), 0);
     }
 
-    // Ждём завершения потока приёма
     receiver.join();
-
-    closesocket(sock);
+    disconnect_from_server();
 #ifdef _WIN32
     WSACleanup();
 #endif
