@@ -71,9 +71,19 @@ int main() {
     std::cout << "Connected to server!" << std::endl;
 
     // Аутентификация
+    bool flag = true;
     std::string action, login, password;
-    std::cout << "Enter REGISTER or LOGIN: ";
-    std::getline(std::cin, action);
+
+    while (flag)
+    {
+        std::cout << "Enter REGISTER or LOGIN: ";
+        std::getline(std::cin, action);
+
+        if (action == "LOGIN" || action == "REGISTER")
+        {
+            flag = false;
+        }
+    }
 
     std::cout << "Login: ";
     std::getline(std::cin, login);
