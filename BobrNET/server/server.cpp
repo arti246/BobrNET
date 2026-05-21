@@ -108,7 +108,13 @@ void handle_client(std::shared_ptr<Session> session) {
         std::cout << "Message from " << login << ": " << cmd_line << std::endl;
 
         if (!dispatcher.dispatch(*session, cmd_line)) {
-            session->send("Unknown command. Type /help");
+            // Проверяем, есть ли активный чат
+            if (session->active_chat() != -1) {
+                session->send_message_to_active_chat(cmd_line);
+            }
+            else {
+                session->send("Unknown command. Type /help. Or /open <chat_id> to enter a chat.");
+            }
         }
 
         if (cmd_line == "/exit") break;

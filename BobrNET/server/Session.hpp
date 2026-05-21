@@ -30,6 +30,9 @@ public:
     void send_message_to_user(const std::string& target_login, const std::string& text);
     void send_chat_history_with_user(const std::string& username);
     void disconnect();
+    void set_active_chat(int chat_id);
+    int active_chat() const;
+    void send_message_to_active_chat(const std::string& text);
 
     // Доступ к репозиториям (через ссылки)
     Database& db();

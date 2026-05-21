@@ -23,6 +23,17 @@ extern LogRepository g_logs;
 extern std::map<int, std::shared_ptr<Session>> g_sessions;
 extern std::mutex g_sessions_mutex;
 
+int m_active_chat = -1;
+static thread_local int t_active_chat = -1;
+
+void Session::set_active_chat(int chat_id) {
+    t_active_chat = chat_id;
+}
+
+int Session::active_chat() const {
+    return t_active_chat;
+}
+
 // Вспомогательная функция (объявлена где-то или определим здесь)
 std::string get_chat_display_name(int chat_id, int current_user_id);
 
@@ -150,6 +161,41 @@ void Session::send_chat_history_with_user(const std::string& username) {
 
 void Session::disconnect() {
     send("[Goodbye!]");
+}
+
+void Session::send_message_to_active_chat(const std::string& text) {
+    int chat_id = active_chat();
+    if (chat_id == -1) {
+        send("[Error: No active chat. Use /open <chat_id> first]");
+        return;
+    }
+
+    // Проверяем, всё ли ещё пользователь в чате
+    if (!g_chats.is_participant(chat_id, m_user_id)) {
+        send("[Error: You are no longer a member of this chat]");
+        set_active_chat(-1);
+        return;
+    }
+
+    // Сохраняем сообщение
+    if (!g_messages.save(chat_id, m_user_id, text, MessageStatus::SENT)) {
+        send("[Error: Failed to save message]");
+        return;
+    }
+
+    // Отправляем всем участникам, кроме себя
+    auto participants = g_chats.get_participants(chat_id, m_user_id);
+    for (const auto& user : participants) {
+        auto it = g_sessions.find(user.id());
+        if (it != g_sessions.end() && it->second) {
+            it->second->send(m_login + ": " + text);
+        }
+    }
+
+    // Подтверждение отправителю (опционально)
+    // send("[Sent]");
+
+    g_logs.info("MESSAGE", m_login + " -> chat " + std::to_string(chat_id) + ": " + text, m_user_id);
 }
 
 Database& Session::db() { return g_db; }

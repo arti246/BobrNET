@@ -20,6 +20,7 @@
 
 SOCKET sock;
 bool connected = true;
+bool in_chat = false;
 
 void receive_messages() {
     char buffer[4096];
@@ -30,7 +31,42 @@ void receive_messages() {
             break;
         }
         buffer[bytes] = '\0';
-        std::cout << buffer << std::flush;
+        std::string msg(buffer);
+
+        // Убираем лишние переводы строк
+        while (!msg.empty() && (msg.back() == '\n' || msg.back() == '\r')) {
+            msg.pop_back();
+        }
+
+        if (msg.empty()) continue;
+
+        // Проверяем, является ли сообщение системным
+        bool is_system = (msg[0] == '[') ||
+            (msg.find("===") == 0) ||
+            (msg.find("=================") == 0) ||
+            (msg.find("Unknown command") == 0) ||
+            (msg.find("[Error") == 0) ||
+            (msg.find("[Sent to") == 0) ||
+            (msg.find("[Welcome") == 0) ||
+            (msg.find("[No chats yet") == 0);
+
+        // Стираем текущую строку (если есть символы)
+        // Для Windows и Linux/Unix
+        std::cout << "\r";  // возврат в начало строки
+        std::cout << "\033[K"; // очистка строки (работает в терминалах, поддерживающих ANSI)
+
+        // Выводим сообщение
+        if (in_chat && !is_system && msg.find("=== Chat:") != 0 && msg.find("[Exited chat]") != 0) {
+            // Это сообщение от другого пользователя
+            std::cout << msg << std::endl;
+        }
+        else {
+            // Системное сообщение или список чатов
+            std::cout << msg << std::endl;
+        }
+
+        // Восстанавливаем приглашение
+        std::cout << "> " << std::flush;
     }
 }
 
@@ -72,9 +108,8 @@ void disconnect_from_server() {
 }
 
 bool authenticate(const std::string& action, const std::string& login, const std::string& password) {
-    // Подключаемся к серверу
     if (!connect_to_server()) {
-        std::cout << "[Error: Cannot connect to server. Make sure it's running.]" << std::endl;
+        std::cout << "[Error: Cannot connect to server]" << std::endl;
         return false;
     }
 
@@ -88,8 +123,7 @@ bool authenticate(const std::string& action, const std::string& login, const std
         std::cout << buffer << std::endl;
 
         if (std::string(buffer).find("Error") != std::string::npos ||
-            std::string(buffer).find("failed") != std::string::npos ||
-            std::string(buffer).find("already taken") != std::string::npos) {
+            std::string(buffer).find("failed") != std::string::npos) {
             disconnect_from_server();
             return false;
         }
@@ -102,7 +136,7 @@ bool authenticate(const std::string& action, const std::string& login, const std
 
 bool register_user(const std::string& login, const std::string& password, const std::string& birthday) {
     if (!connect_to_server()) {
-        std::cout << "[Error: Cannot connect to server. Make sure it's running.]" << std::endl;
+        std::cout << "[Error: Cannot connect to server]" << std::endl;
         return false;
     }
 
@@ -193,25 +227,69 @@ int main() {
     // Запускаем поток для приёма сообщений
     std::thread receiver(receive_messages);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-    // Основной цикл для отправки сообщений
+    // Основной цикл
     std::string input;
     while (connected) {
-        std::cout << "> " << std::flush;
+        //std::cout << "> " << std::flush;
         std::getline(std::cin, input);
 
-        if (input == "/exit") {
-            send(sock, input.c_str(), input.size(), 0);
-            connected = false;
-            break;
-        }
+        if (input.empty()) continue;
 
-        send(sock, input.c_str(), input.size(), 0);
+        // Команды
+        if (input == "/exit") {
+            if (in_chat) {
+                // Выход из чата
+                in_chat = false;
+                std::cout << "[Exited chat]" << std::endl;
+                send(sock, "/chats", 6, 0);
+            }
+            else {
+                // Выход из программы
+                send(sock, "/exit", 5, 0);
+                connected = false;
+                break;
+            }
+        }
+        else if (input == "/chats" || input == "/list") {
+            send(sock, input.c_str(), input.size(), 0);
+        }
+        else if (input.rfind("/msg ", 0) == 0) {
+            // Поддерживаем /msg для обратной совместимости и создания новых чатов
+            send(sock, input.c_str(), input.size(), 0);
+        }
+        else if (input.rfind("/open ", 0) == 0) {
+            send(sock, input.c_str(), input.size(), 0);
+            in_chat = true;
+        }
+        else if (input == "/help") {
+            std::cout << "Commands: /chats, /open <chat_id>, /msg <user> <text>, /exit" << std::endl;
+            std::cout << "In chat: just type your message" << std::endl;
+        }
+        else {
+            // Пробуем интерпретировать как номер чата
+            try {
+                int chat_id = std::stoi(input);
+                std::string cmd = "/open " + input;
+                send(sock, cmd.c_str(), cmd.size(), 0);
+                in_chat = true;
+            }
+            catch (...) {
+                // Обычный текст — проверяем, в чате ли мы
+                if (in_chat) {
+                    send(sock, input.c_str(), input.size(), 0);
+                }
+                else {
+                    std::cout << "Unknown command. Type /help" << std::endl << "> ";
+                }
+            }
+        }
     }
 
     receiver.join();
     disconnect_from_server();
+
 #ifdef _WIN32
     WSACleanup();
 #endif
