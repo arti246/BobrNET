@@ -20,7 +20,7 @@ extern ChatRepository g_chats;
 extern MessageRepository g_messages;
 extern LogRepository g_logs;
 
-extern std::map<int, std::unique_ptr<Session>> g_sessions;
+extern std::map<int, std::shared_ptr<Session>> g_sessions;
 extern std::mutex g_sessions_mutex;
 
 // Вспомогательная функция (объявлена где-то или определим здесь)

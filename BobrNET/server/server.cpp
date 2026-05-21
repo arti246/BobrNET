@@ -32,15 +32,15 @@ MessageRepository g_messages(g_db);
 LogRepository g_logs(g_db);
 
 // Активные сессии
-std::map<int, std::unique_ptr<Session>> g_sessions;
+std::map<int, std::shared_ptr<Session>> g_sessions;
 std::mutex g_sessions_mutex;
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 
 void broadcast(const std::string& msg, int exclude_user_id = -1) {
     std::lock_guard<std::mutex> lock(g_sessions_mutex);
-    for (auto& [user_id, session] : g_sessions) {
-        if (user_id != exclude_user_id) {
+    for (auto& [uid, session] : g_sessions) {
+        if (uid != exclude_user_id && session) {
             session->send(msg);
         }
     }
@@ -69,7 +69,7 @@ std::string get_chat_display_name(int chat_id, int current_user_id) {
 
 // ========== ОБРАБОТЧИК КЛИЕНТА ==========
 
-void handle_client(std::unique_ptr<Session> session) {
+void handle_client(std::shared_ptr<Session> session) {
     int user_id = session->user_id();
     std::string login = session->login();
 
@@ -255,18 +255,18 @@ int main() {
         }
 
         // Создаём сессию
-        auto session = std::make_unique<Session>(clientSocket, user_id, login);
+        auto session = std::make_shared<Session>(clientSocket, user_id, login);
 
         // Сохраняем сессию
         {
             std::lock_guard<std::mutex> lock(g_sessions_mutex);
-            g_sessions[user_id] = std::move(session);
+            g_sessions[user_id] = session;
         }
 
         broadcast(login + " joined the chat", user_id);
 
-        // Запускаем поток обработки клиента
-        std::thread client_thread(handle_client, std::move(g_sessions[user_id]));
+        // Запускаем поток с shared_ptr
+        std::thread client_thread(handle_client, session);
         client_thread.detach();
     }
 
