@@ -47,7 +47,13 @@ void broadcast(const std::string& msg, int exclude_user_id = -1) {
 }
 
 std::string hash_password(const std::string& password) {
-    return password;  // TODO: добавить реальное хеширование
+    unsigned long hash = 5381;
+    for (char c : password) {
+        hash = ((hash << 5) + hash) + (unsigned long)c;
+    }
+    std::stringstream ss;
+    ss << std::hex << hash;
+    return ss.str();
 }
 
 std::string get_chat_display_name(int chat_id, int current_user_id) {
