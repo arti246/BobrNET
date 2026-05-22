@@ -13,3 +13,4 @@ project ("BobrNET")
 
 # Включите подпроекты.
 add_subdirectory ("BobrNET")
+
