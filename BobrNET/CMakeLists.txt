@@ -4,11 +4,14 @@ project(BobrNET)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Путь к SQLite
-set(SQLITE_DIR ${CMAKE_SOURCE_DIR}/external/sqlite)
+# 1. Сначала глобальные настройки Qt (до создания таргетов)
+set(CMAKE_PREFIX_PATH "D:/PM/QT/6.11.1/msvc2022_64")
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
 
-# Пути к репозиториям
-set(REPO_DIR ${CMAKE_SOURCE_DIR}/models/db/repositories)
+# 2. Находим пакеты
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network)
 
 # ========== СЕРВЕР ==========
 add_executable(server
@@ -31,60 +34,64 @@ add_executable(server
 
 target_include_directories(server PRIVATE
     ${CMAKE_SOURCE_DIR}
-    ${SQLITE_DIR}
+    ${CMAKE_SOURCE_DIR}/external/sqlite
     ${CMAKE_SOURCE_DIR}/models
     ${CMAKE_SOURCE_DIR}/models/db
-    ${REPO_DIR}
+    ${CMAKE_SOURCE_DIR}/models/db/repositories
 )
 
 # ========== КЛИЕНТ (консольный) ==========
 add_executable(client
     client/client_console.cpp
-)
+    client/gui/QtNetworkAdapter.cpp
+    client/NetworkClient.cpp)
 
 target_include_directories(client PRIVATE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/models
 )
 
-# Подключаем библиотеки
-if(WIN32)
-    target_link_libraries(server ws2_32)
-    target_link_libraries(client ws2_32)
-else()
-    target_link_libraries(server pthread)
-endif()
+# Для работы QObject в консольном клиенте
+target_link_libraries(client PRIVATE Qt6::Core ws2_32)
 
 # ========== QT GUI КЛИЕНТ ==========
-if(TRUE)
-    set(CMAKE_PREFIX_PATH "D:/PM/QT/6.11.1/msvc2022_64")
-    set(CMAKE_AUTOMOC ON)
-    set(CMAKE_AUTOUIC ON)
-    find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
+add_executable(client_gui
+    client/gui/main.cpp
+    client/gui/MainWindow.cpp
+    client/gui/LoginDialog.cpp
+    client/gui/QtNetworkAdapter.cpp
+    client/NetworkClient.cpp
+    client/gui/QtNetworkAdapter.h
+)
 
-    add_executable(client_gui
-        client/gui/main.cpp
-        client/gui/MainWindow.cpp
-        client/gui/LoginDialog.cpp
-        client/NetworkClient.cpp
-    )
+target_include_directories(client_gui PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/client
+    ${CMAKE_SOURCE_DIR}/client/gui
+    ${CMAKE_SOURCE_DIR}/models
+)
 
-    target_include_directories(client_gui PRIVATE
-        ${CMAKE_SOURCE_DIR}
-        ${CMAKE_SOURCE_DIR}/client
-        ${CMAKE_SOURCE_DIR}/client/gui
-        ${CMAKE_SOURCE_DIR}/client/network
-        ${CMAKE_SOURCE_DIR}/models
-    )
+# Линкуем Qt библиотеки (инклюды подключатся автоматически через линковку)
+target_link_libraries(client_gui PRIVATE
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Network
+    ws2_32
+)
 
-    target_link_libraries(client_gui
-        Qt6::Core
-        Qt6::Widgets
-        ws2_32
-    )
+# ========== СИСТЕМНЫЕ ЗАВИСИМОСТИ ==========
+if(WIN32)
+    target_link_libraries(server PRIVATE ws2_32)
+else()
+    target_link_libraries(server PRIVATE pthread)
+endif()
 
-    set_target_properties(client_gui PROPERTIES
-        AUTOMOC ON
-        AUTOUIC ON
+# ========== РАЗВЕРТЫВАНИЕ (DEPLOY) ==========
+# Вместо ручного копирования DLL лучше использовать встроенный механизм
+if(WIN32)
+    add_custom_command(TARGET client_gui POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_PREFIX_PATH}/plugins/platforms"
+            $<TARGET_FILE_DIR:client_gui>/platforms
     )
 endif()

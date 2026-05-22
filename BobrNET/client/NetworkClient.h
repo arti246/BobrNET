@@ -2,14 +2,47 @@
 
 #include <string>
 #include <functional>
+#include <thread>
+#include <mutex>
 
-class NetworkClient {
+class NetworkClient
+{
 public:
-    NetworkClient() = default;
-    bool connectToServer(const std::string&, int) { return true; }
-    void sendCommand(const std::string&) {}
-    void setMessageCallback(std::function<void(const std::string&)>) {}
-    bool login(const std::string&, const std::string&) { return true; }
-    bool registerUser(const std::string&, const std::string&, const std::string&) { return true; }
-    void disconnect() {}
+    NetworkClient();
+    ~NetworkClient();
+
+    // Подключение
+    bool connectToServer(const std::string& host, int port);
+    void disconnect();
+
+    // Аутентификация
+    bool login(const std::string& login, const std::string& password);
+    bool registerUser(const std::string& login, const std::string& password, const std::string& birthday);
+
+    // Отправка команд
+    void sendCommand(const std::string& cmd);
+
+    // Состояние
+    bool isConnected() const;
+    std::string getCurrentUser() const;
+
+    // Callback для получения сообщений от сервера
+    void setMessageCallback(std::function<void(const std::string&)> callback);
+
+    // Очистка
+    void clear();
+
+private:
+    void receiveThread();
+    void processMessage(const std::string& msg);
+    bool authenticate(const std::string& action, const std::string& login, const std::string& password);
+    bool registerUserInternal(const std::string& login, const std::string& password, const std::string& birthday);
+
+    int m_sock;
+    std::thread m_receiverThread;
+    bool m_running;
+    bool m_authenticated;
+    std::string m_currentUser;
+    std::mutex m_mutex;
+    std::function<void(const std::string&)> m_callback;
 };
