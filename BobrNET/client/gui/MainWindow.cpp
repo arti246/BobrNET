@@ -187,22 +187,30 @@ void MainWindow::onChatSelected(QListWidgetItem* item)
 }
 
 void MainWindow::onMessageReceived(const QString& msg)
-{/*
-    if (msg.startsWith("[Welcome") ||
-        msg == "[No chats yet. Send a message to someone to create a chat]") {
+{
+    // Фильтруем все нежелательные сообщения
+    if (msg.isEmpty()) return;
+
+    // Список сообщений, которые НЕ нужно показывать
+    static const QStringList ignoredMessages = {
+        "=========================",
+        "================="
+    };
+
+    if (ignoredMessages.contains(msg)) {
         return;
-    }*/
+    }
 
     // Обработка списка чатов
     if (msg == "=== Your chats ===") {
         m_chatList->clear();
-        return;  // не выводим в историю
+        return;
     }
 
     // Элемент списка чатов
     if (msg.startsWith("  [")) {
         m_chatList->addItem(msg);
-        return;  // не выводим в историю
+        return;
     }
 
     // Открытие чата — чистим историю
@@ -213,11 +221,6 @@ void MainWindow::onMessageReceived(const QString& msg)
         if (end > start) {
             m_currentChatName = msg.mid(start, end - start);
         }
-        return;  // не выводим заголовок чата в историю
-    }
-
-    // Разделитель истории — не выводим
-    if (msg == "=========================") {
         return;
     }
 

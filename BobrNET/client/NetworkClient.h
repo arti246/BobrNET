@@ -4,6 +4,7 @@
 #include <functional>
 #include <thread>
 #include <mutex>
+#include <future>
 
 class NetworkClient
 {
@@ -15,7 +16,7 @@ public:
     bool connectToServer(const std::string& host, int port);
     void disconnect();
 
-    // Аутентификация
+    // Аутентификация (теперь возвращает реальный результат)
     bool login(const std::string& login, const std::string& password);
     bool registerUser(const std::string& login, const std::string& password, const std::string& birthday);
 
@@ -29,14 +30,12 @@ public:
     // Callback для получения сообщений от сервера
     void setMessageCallback(std::function<void(const std::string&)> callback);
 
-    // Очистка
     void clear();
 
 private:
     void receiveThread();
-    void processMessage(const std::string& msg);
-    bool authenticate(const std::string& action, const std::string& login, const std::string& password);
-    bool registerUserInternal(const std::string& login, const std::string& password, const std::string& birthday);
+    bool authenticate(const std::string& action, const std::string& login,
+        const std::string& password, const std::string& birthday = "");
 
     int m_sock;
     std::thread m_receiverThread;
@@ -45,4 +44,8 @@ private:
     std::string m_currentUser;
     std::mutex m_mutex;
     std::function<void(const std::string&)> m_callback;
+
+    // Для ожидания ответа аутентификации
+    std::promise<bool> m_authPromise;
+    bool m_waitingForAuth;
 };

@@ -4,9 +4,11 @@
 #include <sstream>
 #include <chrono>
 #include <thread>
+#include <atomic>
 #include "../models/Platform.hpp"
 
-NetworkClient::NetworkClient() : m_sock(INVALID_SOCKET), m_running(false), m_authenticated(false)
+NetworkClient::NetworkClient()
+    : m_sock(INVALID_SOCKET), m_running(false), m_authenticated(false)
 {
 #ifdef _WIN32
     WSADATA wsaData;
@@ -73,29 +75,33 @@ void NetworkClient::sendCommand(const std::string& cmd)
     }
 }
 
-bool NetworkClient::authenticate(const std::string& action, const std::string& login, const std::string& password)
-{
-    std::string auth_cmd = action + " " + login + " " + password;
-    sendCommand(auth_cmd);
-
-    // Ждём ответ (упрощённо, для полноты нужно сделать promise/future)
-    // Пока возвращаем true, результат будет в callback
-    return true;
-}
-
 bool NetworkClient::login(const std::string& login, const std::string& password)
 {
-    if (!authenticate("LOGIN", login, password)) return false;
-    m_currentUser = login;
-    return true;
+    std::string auth_cmd = "LOGIN " + login + " " + password;
+    sendCommand(auth_cmd);
+
+    // Ждём ответ 2 секунды
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    if (m_authenticated) {
+        m_currentUser = login;
+        return true;
+    }
+    return false;
 }
 
 bool NetworkClient::registerUser(const std::string& login, const std::string& password, const std::string& birthday)
 {
     std::string auth_cmd = "REGISTER " + login + " " + password + " " + birthday;
     sendCommand(auth_cmd);
-    m_currentUser = login;
-    return true;
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    if (m_authenticated) {
+        m_currentUser = login;
+        return true;
+    }
+    return false;
 }
 
 void NetworkClient::receiveThread()
@@ -118,15 +124,18 @@ void NetworkClient::receiveThread()
             msg.pop_back();
         }
 
-        if (!msg.empty() && m_callback) {
-            m_callback(msg);
-        }
+        if (!msg.empty()) {
+            // Проверяем успешность аутентификации
+            if (msg.find("successful") != std::string::npos ||
+                msg.find("Welcome back") != std::string::npos ||
+                msg.find("Registration successful") != std::string::npos) {
+                m_authenticated = true;
+            }
 
-        // Проверяем успешность аутентификации
-        if (msg.find("successful") != std::string::npos ||
-            msg.find("Welcome back") != std::string::npos ||
-            msg.find("Registration successful") != std::string::npos) {
-            m_authenticated = true;
+            // Передаём все сообщения в callback
+            if (m_callback) {
+                m_callback(msg);
+            }
         }
     }
 }
@@ -149,12 +158,4 @@ std::string NetworkClient::getCurrentUser() const
 void NetworkClient::clear()
 {
     disconnect();
-}
-
-void NetworkClient::processMessage(const std::string& msg) {
-
-}
-
-bool NetworkClient::registerUserInternal(const std::string& login, const std::string& password, const std::string& birthday) {
-    return true;
 }

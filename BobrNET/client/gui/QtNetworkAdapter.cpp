@@ -35,11 +35,7 @@ void QtNetworkAdapter::sendCommand(const QString& cmd)
 
 bool QtNetworkAdapter::login(const QString& login, const QString& password)
 {
-    if (!m_client.login(login.toStdString(), password.toStdString())) {
-        emit authenticationError("Неверный логин или пароль!");
-        return false;
-    }
-    return true;
+    return m_client.login(login.toStdString(), password.toStdString());
 }
 
 bool QtNetworkAdapter::registerUser(const QString& login, const QString& password, const QString& birthday)
