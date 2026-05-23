@@ -8,11 +8,52 @@
 #include <QPushButton>
 #include <QDateTime>
 #include <QRegularExpression>
+#include <QApplication>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), m_currentChatId(-1)
 {
     setupUI();
+}
+
+MainWindow::~MainWindow()
+{
+    if (m_adapter) {
+        m_adapter->disconnect();
+    }
+}
+
+void MainWindow::setupUI()
+{
+    setWindowTitle("BobrNET");
+    setMinimumSize(800, 600);
+
+    // Создаём виджеты
+    m_chatList = new QListWidget(this);
+    m_chatList->setMaximumWidth(250);
+
+    // Стили для QListWidget
+    m_chatList->setStyleSheet(R"(
+    QListWidget {
+        background-color: #2b2b2b;
+        border: none;
+        outline: none;
+    }
+    QListWidget::item {
+        background-color: #3c3c3c;
+        color: #ffffff;
+        padding: 12px;
+        border-bottom: 1px solid #4a4a4a;
+        font-size: 13px;
+    }
+    QListWidget::item:hover {
+        background-color: #4a6a8a;
+    }
+    QListWidget::item:selected {
+        background-color: #0e639c;
+        color: white;
+    }
+)");
 
     setStyleSheet(R"(
     QMainWindow {
@@ -52,60 +93,6 @@ MainWindow::MainWindow(QWidget* parent)
     }
 )");
 
-    m_adapter = std::make_unique<QtNetworkAdapter>();
-
-    connect(m_adapter.get(), &QtNetworkAdapter::messageReceived,
-        this, &MainWindow::onMessageReceived);
-
-    showLoginDialog();
-}
-
-MainWindow::~MainWindow()
-{
-    // Отключаем все соединения перед удалением
-    if (m_adapter) {
-        m_adapter->disconnect();
-    }
-
-    // Очищаем указатели
-    m_chatList = nullptr;
-    m_chatHistory = nullptr;
-    m_inputLine = nullptr;
-    m_sendBtn = nullptr;
-}
-
-void MainWindow::setupUI()
-{
-    setWindowTitle("BobrNET");
-    setMinimumSize(800, 600);
-
-    // Создаём виджеты
-    m_chatList = new QListWidget(this);
-    m_chatList->setMaximumWidth(250);
-
-    // Стили для QListWidget
-    m_chatList->setStyleSheet(R"(
-    QListWidget {
-        background-color: #2b2b2b;
-        border: none;
-        outline: none;
-    }
-    QListWidget::item {
-        background-color: #3c3c3c;
-        color: #ffffff;
-        padding: 12px;
-        border-bottom: 1px solid #4a4a4a;
-        font-size: 13px;
-    }
-    QListWidget::item:hover {
-        background-color: #4a6a8a;
-    }
-    QListWidget::item:selected {
-        background-color: #0e639c;
-        color: white;
-    }
-)");
-
     m_chatHistory = new QTextEdit(this);
     m_chatHistory->setReadOnly(true);
     m_chatHistory->setFontFamily("Consolas");
@@ -142,45 +129,25 @@ void MainWindow::setupUI()
     connect(m_chatList, &QListWidget::itemClicked, this, &MainWindow::onChatSelected);
 }
 
-void MainWindow::showLoginDialog()
+void MainWindow::setAdapter(QtNetworkAdapter* adapter)
 {
-    LoginDialog* dialog = new LoginDialog(this);
-    if (dialog->exec() != QDialog::Accepted) {
-        delete dialog;
-        close();
-        return;
-    }
+    m_adapter = std::unique_ptr<QtNetworkAdapter>(adapter);
 
-    // Сохраняем данные до удаления dialog
-    QString login = dialog->getLogin();
-    QString password = dialog->getPassword();
-    QString birthday = dialog->getBirthday();
-    bool isRegister = dialog->isRegisterMode();
+    // Подключаем все сигналы здесь
+    connect(m_adapter.get(), &QtNetworkAdapter::messageReceived,
+        this, &MainWindow::onMessageReceived);
 
-    delete dialog;  // удаляем после получения данных
+    connect(m_adapter.get(), &QtNetworkAdapter::connectionError,
+        this, [this](const QString& err) {
+            QMessageBox::critical(this, "Ошибка подключения", err);
+        });
 
-    if (!m_adapter->connectToServer("127.0.0.1", 8888)) {
-        QMessageBox::critical(this, "Error", "Cannot connect to server");
-        close();
-        return;
-    }
+    connect(m_adapter.get(), &QtNetworkAdapter::authenticationError,
+        this, [this](const QString& err) {
+            QMessageBox::critical(this, "Ошибка авторизации", err);
+        });
 
-    bool success;
-    if (isRegister) {
-        success = m_adapter->registerUser(login, password, birthday);
-    }
-    else {
-        success = m_adapter->login(login, password);
-    }
-
-    if (!success) {
-        QMessageBox::critical(this, "Error", "Authentication failed");
-        close();
-        return;
-    }
-
-    setWindowTitle("BobrNET - " + login);
-    m_adapter->sendCommand("/chats");
+    setWindowTitle("BobrNET - " + m_adapter->getCurrentUser());
 }
 
 void MainWindow::onSendMessage()
@@ -188,21 +155,14 @@ void MainWindow::onSendMessage()
     QString text = m_inputLine->text().trimmed();
     if (text.isEmpty()) return;
 
-    // Локально добавляем своё сообщение в историю (сразу)
+    // Если есть открытый чат, показываем своё сообщение сразу
     if (m_currentChatId != -1) {
-        // Получаем текущее время
         QString time = QDateTime::currentDateTime().toString("dd.MM.yyyy HH:mm");
         appendMessage(QString("[%1] Me: %2").arg(time, text));
     }
 
     // Отправляем на сервер
-    if (m_currentChatId == -1) {
-        m_adapter->sendCommand(text);
-    }
-    else {
-        m_adapter->sendCommand(text);
-    }
-
+    m_adapter->sendCommand(text);
     m_inputLine->clear();
 }
 
@@ -227,28 +187,44 @@ void MainWindow::onChatSelected(QListWidgetItem* item)
 }
 
 void MainWindow::onMessageReceived(const QString& msg)
-{
-    // Список чатов
-        if (msg == "=== Your chats ===") {
-            m_chatList->clear();
-        }
+{/*
+    if (msg.startsWith("[Welcome") ||
+        msg == "[No chats yet. Send a message to someone to create a chat]") {
+        return;
+    }*/
+
+    // Обработка списка чатов
+    if (msg == "=== Your chats ===") {
+        m_chatList->clear();
+        return;  // не выводим в историю
+    }
+
     // Элемент списка чатов
-        else if (msg.startsWith("  [")) {
-            m_chatList->addItem(msg);
+    if (msg.startsWith("  [")) {
+        m_chatList->addItem(msg);
+        return;  // не выводим в историю
+    }
+
+    // Открытие чата — чистим историю
+    if (msg.startsWith("=== Chat:")) {
+        m_chatHistory->clear();
+        int start = 10;
+        int end = msg.indexOf(" ===", start);
+        if (end > start) {
+            m_currentChatName = msg.mid(start, end - start);
         }
-    // Открытие чата
-        else if (msg.startsWith("=== Chat:")) {
-            m_chatHistory->clear();
-            updateCurrentChat(msg);
-        }
-    // История сообщений
-        else if (msg.startsWith("[") && msg.contains("] ")) {
-            m_chatHistory->append(msg);
-        }
-    // Системные сообщения
-        else {
-            m_chatHistory->append(msg);
-        }
+        return;  // не выводим заголовок чата в историю
+    }
+
+    // Разделитель истории — не выводим
+    if (msg == "=========================") {
+        return;
+    }
+
+    // Всё остальное выводим в историю
+    if (!msg.isEmpty()) {
+        m_chatHistory->append(msg);
+    }
 }
 
 void MainWindow::appendMessage(const QString& msg)
@@ -279,5 +255,13 @@ void MainWindow::updateCurrentChat(const QString& msg)
         if (end > start) {
             m_currentChatName = msg.mid(start, end - start);
         }
+    }
+}
+
+void MainWindow::setCurrentUser(const QString& login)
+{
+    setWindowTitle("BobrNET - " + login);
+    if (m_adapter) {
+        m_adapter->sendCommand("/chats");
     }
 }

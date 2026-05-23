@@ -16,7 +16,11 @@ QtNetworkAdapter::~QtNetworkAdapter()
 
 bool QtNetworkAdapter::connectToServer(const QString& host, int port)
 {
-    return m_client.connectToServer(host.toStdString(), port);
+    if (!m_client.connectToServer(host.toStdString(), port)) {
+        emit connectionError("Проблемка с подклчением к серверу...");
+        return false;
+    }
+    return true;
 }
 
 void QtNetworkAdapter::disconnect()
@@ -31,7 +35,11 @@ void QtNetworkAdapter::sendCommand(const QString& cmd)
 
 bool QtNetworkAdapter::login(const QString& login, const QString& password)
 {
-    return m_client.login(login.toStdString(), password.toStdString());
+    if (!m_client.login(login.toStdString(), password.toStdString())) {
+        emit authenticationError("Неверный логин или пароль!");
+        return false;
+    }
+    return true;
 }
 
 bool QtNetworkAdapter::registerUser(const QString& login, const QString& password, const QString& birthday)

@@ -16,6 +16,8 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
+    void setCurrentUser(const QString& login);
+    void setAdapter(QtNetworkAdapter* adapter);
 
 private slots:
     void onSendMessage();
@@ -24,7 +26,6 @@ private slots:
 
 private:
     void setupUI();
-    void showLoginDialog();
     void updateChatList(const QString& msg);
     void appendMessage(const QString& msg);
     void updateCurrentChat(const QString& msg);

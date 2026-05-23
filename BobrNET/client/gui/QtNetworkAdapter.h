@@ -23,6 +23,8 @@ public:
 
 signals:
     void messageReceived(const QString& msg);
+    void connectionError(const QString& error);
+    void authenticationError(const QString& error);
 
 private slots:
     void onMessageReceived(const std::string& msg);
