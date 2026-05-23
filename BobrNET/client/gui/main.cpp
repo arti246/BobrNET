@@ -4,23 +4,23 @@
 #include "QtNetworkAdapter.h"
 #include "LoginDialog.h"
 
-
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon("icon.ico"));
 
-    QtNetworkAdapter adapter;
+    QtNetworkAdapter* adapter = new QtNetworkAdapter();
     QString login;
+    bool authenticated = false;
 
-    while (true) {
+    while (!authenticated) {
         LoginDialog dialog(nullptr);
-
         if (dialog.exec() != QDialog::Accepted) {
+            delete adapter;
             return 0;
         }
 
-        if (!adapter.connectToServer("127.0.0.1", 8888)) {
+        if (!adapter->connectToServer("127.0.0.1", 8888)) {
             QMessageBox::critical(nullptr, "Ошибка",
                 "Не удается подключиться к серверу. Убедитесь, что сервер запущен");
             continue;
@@ -28,14 +28,14 @@ int main(int argc, char* argv[])
 
         bool success;
         if (dialog.isRegisterMode()) {
-            success = adapter.registerUser(
+            success = adapter->registerUser(
                 dialog.getLogin(),
                 dialog.getPassword(),
                 dialog.getBirthday()
             );
         }
         else {
-            success = adapter.login(
+            success = adapter->login(
                 dialog.getLogin(),
                 dialog.getPassword()
             );
@@ -43,17 +43,17 @@ int main(int argc, char* argv[])
 
         if (success) {
             login = dialog.getLogin();
-            break;
+            authenticated = true;
         }
         else {
             QMessageBox::critical(nullptr, "Ошибка",
-                "Я не знаю такого пользователя! Проверь ещё раз, какой логин и пароль ты вводишь!");
-            adapter.disconnect();
+                "Неверный логин или пароль!");
+            adapter->disconnect();
         }
     }
 
     MainWindow window;
-    window.setAdapter(&adapter);  // передаём уже подключённый адаптер
+    window.setAdapter(adapter);  // передаём указатель
     window.setCurrentUser(login);
     window.show();
 

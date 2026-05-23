@@ -82,16 +82,9 @@ target_link_libraries(client_gui PRIVATE
 # ========== СИСТЕМНЫЕ ЗАВИСИМОСТИ ==========
 if(WIN32)
     target_link_libraries(server PRIVATE ws2_32)
+    set_target_properties(client_gui PROPERTIES
+        WIN32_EXECUTABLE ON
+    )
 else()
     target_link_libraries(server PRIVATE pthread)
-endif()
-
-# ========== РАЗВЕРТЫВАНИЕ (DEPLOY) ==========
-# Вместо ручного копирования DLL лучше использовать встроенный механизм
-if(WIN32)
-    add_custom_command(TARGET client_gui POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_PREFIX_PATH}/plugins/platforms"
-            $<TARGET_FILE_DIR:client_gui>/platforms
-    )
 endif()
