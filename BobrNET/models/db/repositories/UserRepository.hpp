@@ -23,9 +23,6 @@ public:
     // Проверка существования
     bool exists(const std::string& login);
 
-    // Обновление (позже можно добавить)
-    // bool update_password(int user_id, const std::string& new_hash);
-
 private:
     Database& m_db;
 };

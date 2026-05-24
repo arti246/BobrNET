@@ -7,7 +7,7 @@
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
-    app.setWindowIcon(QIcon("icon.ico"));
+    app.setWindowIcon(QIcon(":/icon.ico"));
 
     QtNetworkAdapter* adapter = new QtNetworkAdapter();
     QString login;
@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
             return 0;
         }
 
-        if (!adapter->connectToServer("127.0.0.1", 8888)) {
+        if (!adapter->connectToServer("192.168.0.105", 8888)) {
             QMessageBox::critical(nullptr, "Ошибка",
                 "Не удается подключиться к серверу. Убедитесь, что сервер запущен");
             continue;

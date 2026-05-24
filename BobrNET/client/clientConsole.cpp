@@ -152,7 +152,7 @@ void receive_messages() {
 
 void show_menu() {
     std::cout << "\n=================================" << std::endl;
-    std::cout << "        MESSENGER CLIENT" << std::endl;
+    std::cout << "        BobrNET" << std::endl;
     std::cout << "=================================" << std::endl;
     std::cout << "  1. Login" << std::endl;
     std::cout << "  2. Register" << std::endl;

@@ -42,7 +42,7 @@ target_include_directories(server PRIVATE
 
 # ========== КЛИЕНТ (консольный) ==========
 add_executable(client
-    client/client_console.cpp
+    client/clientConsole.cpp
     client/gui/QtNetworkAdapter.cpp
     client/NetworkClient.cpp)
 
@@ -62,6 +62,7 @@ add_executable(client_gui
     client/gui/QtNetworkAdapter.cpp
     client/NetworkClient.cpp
     client/gui/QtNetworkAdapter.h
+    resources/resources.qrc
 )
 
 target_include_directories(client_gui PRIVATE

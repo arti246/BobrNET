@@ -6,6 +6,7 @@ LoginDialog::LoginDialog(QWidget* parent) : QDialog(parent), m_isRegister(false)
 {
     setWindowTitle("BobrNET - Login");
     setMinimumSize(350, 300);
+    setWindowIcon(QIcon(":/icon.ico"));
 
     QVBoxLayout* layout = new QVBoxLayout(this);
 

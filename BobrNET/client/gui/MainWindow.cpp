@@ -27,6 +27,7 @@ void MainWindow::setupUI()
 {
     setWindowTitle("BobrNET");
     setMinimumSize(800, 600);
+    setWindowIcon(QIcon(":/icon.ico"));
 
     // Создаём виджеты
     m_chatList = new QListWidget(this);
